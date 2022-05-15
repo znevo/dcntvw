@@ -1,6 +1,42 @@
+$tabs-toggle-link-active-background-color: #000;
+$tabs-toggle-link-active-border-color: #000;
+$link: rgb(153, 105, 255);
+
 @import '~bulma/bulma.sass';
+@import '~bulma-calendar';
+@import url('https://fonts.googleapis.com/css2?family=Corben&display=swap');
+
+html, body {
+    min-height: 100vh;
+}
+
+body {
+  background-color: rgb(246, 234, 229);
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.title, .label {
+  font-family: Corben;
+}
 
 .onboarding.install-metamask,
 .onboarding.connect-wallet, {
     margin-top: 88px;
+}
+
+.container.constrained {
+    max-width: 600px;
+}
+
+.table td, .table th {
+    border: 1px solid #f5f5f5;
+    border-width: 0 0 2px;
+    padding: 0.5em 0;
+}
+
+.no-focus:focus {
+  border-color: gray;
+  box-shadow: none;
 }
