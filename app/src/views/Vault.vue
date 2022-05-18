@@ -39,6 +39,14 @@
             </tr>
           </table>
 
+          <div class="has-text-centered">
+            <p class="control pt-4">
+              <button class="button is-black is-outlined is-medium is-rounded" @click="claimAll">
+                claim all tokens
+              </button>
+            </p>
+          </div>
+
         </div>
 
       </div>
@@ -74,7 +82,16 @@ export default {
 
   },
   methods: {
+    async claimAll() {
+      const provider = new ethers.providers.Web3Provider(this.$metamask.provider);
+      const signer = await provider.getSigner();
+      const vault = new ethers.Contract(this.$route.params.vault, DCNTVW.abi, signer);
 
+      const claimTx = await vault.claimAll(this.$metamask.user);
+      const receipt = await claimTx.wait();
+
+      console.log(receipt);
+    }
   }
 }
 </script>
