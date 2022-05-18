@@ -12,7 +12,9 @@
       </div>
     </section>
 
-    <div class="tabs is-centered is-toggle is-toggle-rounded is-medium m-0 mt-6">
+    <div class="tabs is-centered is-toggle is-toggle-rounded is-medium m-0 mt-6"
+     v-if="$metamask.user && ($metamask.ready('fuji') || $metamask.ready('hardhat'))"
+    >
       <ul>
         <li :class="$route.name === 'Home' ? 'is-active' : ''">
           <router-link to="/">

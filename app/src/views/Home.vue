@@ -27,7 +27,7 @@
     <section class="section" v-if="$metamask.user && ($metamask.ready('fuji') || $metamask.ready('hardhat'))">
       <div class="container constrained is-max-desktop">
 
-        <div class="box pt-5 pb-5">
+        <div class="box pt-5 pb-5" v-if="! confirmed">
           <h1 class="title is-size-4 has-text-dark">Launch Your Vault</h1>
           <h1 class="subtitle is-size-6 has-text-dark">Customize your DCNT VW and submit to deploy!</h1>
 
@@ -61,6 +61,14 @@
           </div>
         </div>
 
+        <div class="box pt-5 pb-5" v-if="confirmed">
+          <h1 class="title is-size-4 has-text-dark">Congratulations!</h1>
+          <h1 class="subtitle is-size-6 has-text-dark">Your custom DCNT VW has been deployed!</h1>
+
+          <p class="block"><b>Vault Address:</b> {{ vaultAddress }}</p>
+          <p class="block">Click <router-link :to="`/explore/${vaultAddress}`">here</router-link> to explore your vault.</p>
+        </div>
+
       </div>
     </section>
 
@@ -75,6 +83,8 @@ export default {
   name: 'Home',
   data() {
     return {
+      confirmed: false,
+      vaultAddress: null,
       form: {
         vaultDistributionToken: null,
         NftWrapperToken: null,
@@ -106,7 +116,10 @@ export default {
         this.form.NftWrapperToken,
         Date.parse(this.form.unlockDate) / 1000
       );
+
       await dcntvw.deployed();
+      this.vaultAddress = dcntvw.address;
+      this.confirmed = true;
 
       console.log("DCNT VW deployed to:", dcntvw.address);
     }
