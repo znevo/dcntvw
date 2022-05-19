@@ -77,7 +77,7 @@
 
 <script>
 import { ethers } from 'ethers';
-import DCNTVW from '../../artifacts/contracts/DCNTVaultWrapper.sol/DCNTVaultWrapper';
+import DCNTVWFactory from '../../artifacts/contracts/DCNTVWFactory.sol/DCNTVWFactory';
 
 export default {
   name: 'Home',
@@ -109,19 +109,19 @@ export default {
     async deploy() {
       const provider = new ethers.providers.Web3Provider(this.$metamask.provider);
       const signer = await provider.getSigner();
-      const dcntvwFactory = new ethers.ContractFactory(DCNTVW.abi, DCNTVW.bytecode, signer);
+      const dcntvwFactory = new ethers.Contract(this.$store.state.dcntvwFactory, DCNTVWFactory.abi, signer);
 
-      const dcntvw = await dcntvwFactory.deploy(
+      const deployTx = await dcntvwFactory.deployVault(
         this.form.vaultDistributionToken,
         this.form.NftWrapperToken,
         Date.parse(this.form.unlockDate) / 1000
       );
 
-      await dcntvw.deployed();
-      this.vaultAddress = dcntvw.address;
+      const receipt = await deployTx.wait();
+      this.vaultAddress = receipt.events.find(x => x.event === 'NewVault').args[0];
       this.confirmed = true;
 
-      console.log("DCNT VW deployed to:", dcntvw.address);
+      console.log("DCNT VW deployed to:", this.vaultAddress);
     }
   }
 }
