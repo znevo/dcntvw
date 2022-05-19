@@ -6,24 +6,24 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 
 /// @title Decentralized Creator Nonfungible Token Vault Wrapper (DCNT VWs)
 /// @notice claimable ERC20s for NFT holders after vault expiration 
-contract DCNTVaultWrapper is Ownable {
+contract DCNTVaultWrapper is Ownable, Initializable {
 
   /// ============ Immutable storage ============
 
-  /// @notice vault token to be distributed to token holders
-  IERC20 public immutable vaultDistributionToken;
-  /// @notice "ticket" token held by user
-  IERC721Enumerable public immutable nftVaultKey;
-  /// @notice unlock date when distribution can start happening
-  uint256 public immutable unlockDate;
-  
-
   /// ============ Mutable storage ============
-  
+
+  /// @notice vault token to be distributed to token holders
+  IERC20 public vaultDistributionToken;
+  /// @notice "ticket" token held by user
+  IERC721Enumerable public nftVaultKey;
+  /// @notice unlock date when distribution can start happening
+  uint256 public unlockDate;
+
   /// @notice Mapping of addresses who have claimed tokens
   mapping(uint256 => bool) internal hasClaimedTokenId;
 
@@ -37,17 +37,19 @@ contract DCNTVaultWrapper is Ownable {
   /// @param amount of tokens claimed
   event Claimed(address account, uint256 amount);
 
-  /// ============ Constructor ============
+  /// ============ Initializer ============
 
-  /// @notice Creates a new vault
+  /// @notice Initializes a new vault
   /// @param _vaultDistributionTokenAddress of token
   /// @param _nftVaultKeyAddress of token
   /// @param _unlockDate date of vault expiration
-  constructor(
-    address _vaultDistributionTokenAddress, 
+  function initialize(
+    address _owner,
+    address _vaultDistributionTokenAddress,
     address _nftVaultKeyAddress,
     uint256 _unlockDate
-  ) {
+  ) public initializer {
+    _transferOwnership(_owner);
     vaultDistributionToken = IERC20(_vaultDistributionTokenAddress);
     nftVaultKey = IERC721Enumerable(_nftVaultKeyAddress);
     unlockDate = _unlockDate;
