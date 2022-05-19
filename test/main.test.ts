@@ -29,14 +29,101 @@ const deployDCNTVaultWrapper = async (
   _NftWrapperTokenAddress: string,
   _unlockDate: number
 ) => {
-  const DCNTVaultWrapper = await ethers.getContractFactory("DCNTVaultWrapper");
-  const dcntVaultWrapper = await DCNTVaultWrapper.deploy(
+  const dcntVWImplementation = await deployDCNTVWImplementation();
+  const dcntVWFactory = await deployDCNTVWFactory(dcntVWImplementation.address);
+  const dcntVaultWrapper = await deployDCNTVWClone(
+    dcntVWFactory,
     _vaultDistributionTokenAddress,
     _NftWrapperTokenAddress,
     _unlockDate
   );
-  return await dcntVaultWrapper.deployed();
+  return dcntVaultWrapper;
 }
+
+const deployDCNTVWImplementation = async () => {
+  const DCNTVaultWrapper = await ethers.getContractFactory("DCNTVaultWrapper");
+  const dcntVWImplementation = await DCNTVaultWrapper.deploy();
+  return await dcntVWImplementation.deployed();
+}
+
+const deployDCNTVWFactory = async (
+  _vaultImplementationAddress: string,
+) => {
+  const DCNTVWFactory = await ethers.getContractFactory("DCNTVWFactory");
+  const dcntVWFactory = await DCNTVWFactory.deploy(
+    _vaultImplementationAddress,
+  );
+  return await dcntVWFactory.deployed();
+}
+
+const deployDCNTVWClone = async (
+  dcntVWFactory: Contract,
+  _vaultDistributionTokenAddress: string,
+  _NftWrapperTokenAddress: string,
+  _unlockDate: number
+) => {
+  const deployTx = await dcntVWFactory.deployVault(
+    _vaultDistributionTokenAddress,
+    _NftWrapperTokenAddress,
+    _unlockDate
+  );
+
+  const receipt = await deployTx.wait();
+  const newVaultAddress = receipt.events.find((x: any) => x.event === 'NewVault').args[0];
+  return ethers.getContractAt("DCNTVaultWrapper", newVaultAddress);
+}
+
+describe("DCNTVaultFactory contract", () => {
+  let token: Contract,
+      nft: Contract,
+      factory: Contract,
+      implementation: Contract,
+      clone: Contract,
+      currentDate: Date,
+      owner: SignerWithAddress;
+
+  describe("basic tests", () => {
+    beforeEach(async () => {
+      [owner] = await ethers.getSigners();
+      currentDate = new Date();
+      nft = await deployNFT();
+      token = await deployERC20(100);
+
+      implementation = await deployDCNTVWImplementation();
+      factory = await deployDCNTVWFactory(implementation.address);
+      clone = await deployDCNTVWClone(
+        factory,
+        token.address,
+        nft.address,
+        Math.floor(currentDate.getTime() / 1000)
+      );
+    });
+
+    describe("initial deployment", async () => {
+      it("should store the implementation address on the vault factory", async () => {
+        expect(ethers.utils.getAddress(await factory.vaultImplementation())).to.equal(implementation.address);
+      });
+    });
+
+    describe("dcnt vault wrapper clones", async () => {
+      it("should have the owner set as the EOA deploying the vault", async () => {
+        expect(ethers.utils.getAddress(await clone.owner())).to.equal(owner.address);
+      });
+
+      it("should have the same erc20 address as its backing token", async () => {
+        expect(ethers.utils.getAddress(await clone.vaultDistributionToken())).to.equal(token.address);
+      });
+
+      it("should have the same erc721 address as its backing nft", async () => {
+        expect(ethers.utils.getAddress(await clone.nftVaultKey())).to.equal(nft.address);
+      });
+
+      it("should have the specified unlock date", async () => {
+        expect(await clone.unlockDate()).to.equal(Math.floor(currentDate.getTime() / 1000));
+      });
+    });
+  });
+});
 
 describe("DCNTVaultWrapper contract", () => {
   let token: Contract, nft: Contract, vault: Contract, unlockedVault: Contract;

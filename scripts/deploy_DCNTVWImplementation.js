@@ -1,20 +1,9 @@
 const hre = require("hardhat");
 const { ethers } = require("hardhat");
 
-const vaultDistributionTokenAddress = '';
-const NftWrapperTokenAddress = '';
-
-let tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
-const unlockDate = Math.floor(tomorrow.getTime() / 1000);
-
 async function main() {
   const DCNTVaultWrapper = await ethers.getContractFactory("DCNTVaultWrapper");
-  const dcntVaultWrapper = await DCNTVaultWrapper.deploy(
-    vaultDistributionTokenAddress,
-    NftWrapperTokenAddress,
-    unlockDate
-  );
+  const dcntVaultWrapper = await DCNTVaultWrapper.deploy();
   await dcntVaultWrapper.deployed();
 
   console.log("DCNT VW deployed to:", dcntVaultWrapper.address);
