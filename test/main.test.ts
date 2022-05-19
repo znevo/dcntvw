@@ -3,7 +3,8 @@ import { expect } from "chai";
 import { BigNumber, Contract } from "ethers";
 import { ethers, waffle } from "hardhat";
 import { before, beforeEach } from "mocha";
-
+import { MerkleTree } from "merkletreejs";
+const keccak256 = require("keccak256");
 
 const deployERC20 = async (amountToMint: number) => {
   const TestERC20 = await ethers.getContractFactory("TestERC20");
@@ -345,4 +346,87 @@ describe("DCNTVaultWrapper contract", () => {
       })
     })
   })
+
+  describe("merkle tree claiming functionality", () => {
+    let token: Contract, nft: Contract, vault: Contract, unlockedVault: Contract;
+    let addr1: SignerWithAddress,
+        addr2: SignerWithAddress,
+        addr3: SignerWithAddress,
+        addr4: SignerWithAddress;
+    let tree: MerkleTree, leaves: Array<string>;
+
+    beforeEach(async () => {
+      [addr1, addr2, addr3, addr4] = await ethers.getSigners();
+      let currentDate = new Date();
+      nft = await deployNFT();
+      token = await deployERC20(100);
+
+      // set nft portions
+      await nft.connect(addr1).mintNft(1);
+      await nft.connect(addr2).mintNft(2);
+      await nft.connect(addr3).mintNft(3);
+      await nft.connect(addr4).mintNft(4);
+
+      vault = await deployDCNTVaultWrapper(
+        token.address,
+        nft.address,
+        Math.floor(currentDate.getTime() / 1000)
+      );
+
+      // send 100 tokens to the vault
+      await token.connect(addr1).transfer(vault.address, 100);
+
+      const snapshot = [
+        [addr1.address, 1],
+        [addr2.address, 2],
+        [addr3.address, 3],
+        [addr4.address, 4],
+      ];
+
+      leaves = snapshot.map((address: any[]) => {
+        return ethers.utils.solidityKeccak256(["address", "uint256"], [address[0], address[1]]);
+      });
+
+      tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+      const root = tree.getHexRoot();
+      const rootTx = await vault.unlockVault(root);
+      await rootTx.wait();
+    });
+
+    describe("and a user with 1 nft tries to redeem his tokens (1/10 nfts * 100 tokens)", async () => {
+      it("should transfer 20 tokens to the user's account", async () => {
+        await vault.claimMerkle(addr1.address, 1, tree.getHexProof(leaves[0]));
+        expect(await token.balanceOf(addr1.address)).to.equal(10);
+      });
+    });
+
+    describe("and a user with 1 nft tries to redeem 2 nfts", async () => {
+      it("should prevent the user from doing this", async () => {
+        await expect(vault.claimMerkle(addr1.address, 2, tree.getHexProof(leaves[0]))).to.be.revertedWith(
+          'merkle proof is invalid'
+        );
+      });
+    });
+
+    describe("and a user with 2 nft tries to redeem his tokens (2/10 nfts * 100 tokens)", async () => {
+      it("should transfer 20 tokens to the user's account", async () => {
+        await vault.claimMerkle(addr2.address, 2, tree.getHexProof(leaves[1]));
+        expect(await token.balanceOf(addr2.address)).to.equal(20);
+      });
+    });
+
+    describe("and a user with 3 nft tries to redeem his tokens (3/10 nfts * 100 tokens)", async () => {
+      it("should transfer 30 tokens to the user's account", async () => {
+        await vault.claimMerkle(addr3.address, 3, tree.getHexProof(leaves[2]));
+        expect(await token.balanceOf(addr3.address)).to.equal(30);
+      });
+    });
+
+    describe("and a user with 4 nft tries to redeem his tokens (4/10 nfts * 100 tokens)", async () => {
+      it("should transfer 40 tokens to the user's account", async () => {
+        await vault.claimMerkle(addr4.address, 4, tree.getHexProof(leaves[3]));
+        expect(await token.balanceOf(addr4.address)).to.equal(40);
+      });
+    });
+  });
 })
