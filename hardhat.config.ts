@@ -1,5 +1,6 @@
 import "@nomiclabs/hardhat-waffle";
 require("@nomiclabs/hardhat-etherscan");
+require("hardhat-gas-reporter");
 require('dotenv').config();
 
 // You need to export an object to set up your config
@@ -26,4 +27,10 @@ export default {
   etherscan: {
     apiKey: process.env.ETHERSCAN_KEY
   },
+  gasReporter: {
+    currency: 'USD',
+    gasPrice: 50,
+    coinmarketcap: process.env.COINMARKETCAP_KEY,
+    enabled: true
+  }
 };
